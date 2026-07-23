@@ -1,74 +1,88 @@
+import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from pymongo import MongoClient
-from werkzeug.security import generate_password_hash, check_password_hash
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from dotenv import load_dotenv
+from flask_mail import Mail
+# Import Blueprints
+from routes.auth_routes import auth_bp
+from routes.teacher_routes import teacher_bp
+from routes.student_routes import student_bp
+from routes.parent_routes import parent_bp
+from routes import ai_coach 
+load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
 
-# 🔗 Replace with your connection string (from MongoDB Compass)
-try:
-    client = MongoClient("mongodb://localhost:27017/")
-    # Test the connection
-    client.admin.command('ping')
-    print("Connected to MongoDB successfully!")
-except Exception as e:
-    print(f"Failed to connect to MongoDB: {e}")
-    exit(1)
+# 🔐 App Secret Key
+app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "super-secret-key-change-in-production")
+app.config['SECRET_KEY'] = os.getenv("JWT_SECRET_KEY", "default-secret-key")
+app.config['MAIL_SERVER'] = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+app.config['MAIL_PORT'] = int(os.getenv("MAIL_PORT", 587))
+app.config['MAIL_USE_TLS'] = os.getenv("MAIL_USE_TLS", "True").lower() in ['true', '1', 't']
+app.config['MAIL_USERNAME'] = os.getenv("MAIL_USERNAME")
+app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD")
 
-db = client["auth_system"]            # database name
-users = db["users"]              # collection name
+mail = Mail(app)
+# 🌐 Strict Allowed Origins
+ALLOWED_ORIGINS = [
+    os.getenv("FRONTEND_URL", "http://localhost:5173"),
+    "http://127.0.0.1:5173"
+]
 
-@app.route("/register", methods=["POST"])
-def register():
-    data = request.json
-    if not data:
-        return jsonify({"message": "No data received"}), 400
+# 🛡️ 1. Strict CORS Configuration
+CORS(
+    app,
+    resources={r"/api/*": {"origins": ALLOWED_ORIGINS}},
+    supports_credentials=True,
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"]
+)
 
-    email = data.get("email", "").strip().lower()
-    if users.find_one({"email": email}):
-        return jsonify({"message": "User already exists"}), 409
+# IP address එක අනුව requests ලිමිට් කෙරේ
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"], # Default limit for general routes
+    storage_uri="memory://"
+)
 
-    users.insert_one({
-        "name": data.get("name"),
-        "email": email,
-        "password": generate_password_hash(data.get("password")),
-        "role": data.get("role", "user")
-    })
+limiter.limit("20 per minute")(auth_bp) # Auth endpoints වලට විනාඩියට requests 5යි!
 
-    # Debug
-    print("Registered user:", users.find_one({"email": email}))
+# Upload Configuration
+UPLOAD_FOLDER = 'uploads'
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-    return jsonify({"message": "Registration successful!"}), 201
+# Register Blueprints
+app.register_blueprint(auth_bp, url_prefix="/api")
+app.register_blueprint(teacher_bp, url_prefix="/api")
+app.register_blueprint(student_bp, url_prefix="/api")
+app.register_blueprint(parent_bp, url_prefix="/api")
+app.register_blueprint(ai_coach.ai_coach_bp, url_prefix="/api")
 
 
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.json
-    if not data:
-        return jsonify({"message": "No data received"}), 400
+@app.after_request
+def apply_security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY" # Prevents Clickjacking
+    response.headers["X-XSS-Protection"] = "1; mode=block" # XSS Protection
+    return response
 
-    email = data.get("email", "").strip().lower()
-    password = data.get("password")
-
-    print(f"Login attempt for email: {email}")
-    user = users.find_one({"email": email})
-    print(f"User found: {user}")
-
-    if not user:
-        return jsonify({"message": "User not found"}), 404
-
-    if not check_password_hash(user["password"], password):
-        return jsonify({"message": "Incorrect password"}), 401
-
-    return jsonify({
-        "message": "Login successful",
-        "user": {
-            "name": user["name"],
-            "email": user["email"],
-            "role": user["role"]
-        }
-    }), 200
+# Preflight Options Handler
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        origin = request.headers.get("Origin")
+        if origin in ALLOWED_ORIGINS:
+            response = jsonify({"status": "OK"})
+            response.headers.add("Access-Control-Allow-Origin", origin)
+            response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+            response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+            response.headers.add("Access-Control-Allow-Credentials", "true")
+            return response, 200
 
 if __name__ == "__main__":
-    app.run(host='127.0.0.1', debug=True)
+    app.run(host="127.0.0.1", port=5000, debug=True)

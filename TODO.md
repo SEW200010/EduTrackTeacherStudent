@@ -1,4 +1,0 @@
-- [x] Create ForgotPassword.jsx component in frontend/src/pages/Auth/
-- [x] Add /forgot-password route in App.jsx
-- [x] Update Login.jsx to make "Forgot Password ?" clickable and navigate to /forgot-password
-- [x] Implement login functionality with password hashing: User enters email & password in React form, frontend sends to backend API, backend finds user by email, compares hashed password, if match → login success, else failed

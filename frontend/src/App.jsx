@@ -1,36 +1,33 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Login from "./pages/Auth/Login";
-import Register from "./pages/Auth/Register";
-import ForgotPassword from "./pages/Auth/ForgotPassword";
-import AdminDashboard from "./pages/Admin/A_Dashboard";
-import TeacherDashboard from "./pages/teacher/T_Dashboard";
-import StudentDashboard from "./pages/student/S_Dashboard";
-import Front from "./pages/Auth/front";
-import Option from "./pages/Auth/option";
-import ChildMarks from "./pages/parent/ChildMarks";
-import Attendance from "./pages/parent/Attendance";
-import PerformanceChart from "./pages/parent/PerformanceChart";
-import Notifications from "./pages/parent/Notifications";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
+import Front from "./pages/Front";
+import Option from "./pages/Option";
+import Login1 from "./pages/auth/Login1";
+import Register1 from "./pages/auth/Register1";
+import Teacher from "./pages/dashboards/Teacher";
+import Student from "./pages/dashboards/Student";
+import ForgotPassword1 from './pages/auth/ForgotPassword1';  
+import ResetPassword from './pages/auth/ResetPassword';
+import Parent from './pages/dashboards/Parent';
 
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Front />} />        {/* Landing page */}
-        <Route path="/option" element={<Option />} />
-        <Route path="/login" element={<Login />} />   {/* Login page */}
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/teacher" element={<TeacherDashboard />} />
-        <Route path="/student" element={<StudentDashboard />} />
-        <Route path="/parent" element={<ChildMarks />} />
-        <Route path="/parent/Attendance" element={<Attendance />} />
-        <Route path="/parent/PerformanceChart" element={<PerformanceChart />} />
-        <Route path="/parent/Notifications" element={<Notifications />} />
-
+        <Route path="/" element=
+        {<Front />} />
+        <Route path="/options" element={<Option />} />
+        <Route path="/login" element={<Login1 />} />
+        <Route path="/register" element={<Register1 />} />
+        <Route path="/forgot-password" element={<ForgotPassword1 />} />
+        <Route path="/teacher-dashboard" element={<Teacher />} />
+        <Route path="/student-dashboard" element={<Student />} />
+        <Route path="/forgot-password" element={<ForgotPassword1 />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/parent-dashboard" element={<Parent />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
