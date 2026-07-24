@@ -11,7 +11,6 @@ from routes.auth_routes import auth_bp
 from routes.teacher_routes import teacher_bp
 from routes.student_routes import student_bp
 from routes.parent_routes import parent_bp
-from routes import ai_coach
 
 load_dotenv()
 
@@ -148,10 +147,6 @@ app.register_blueprint(
     url_prefix="/api"
 )
 
-app.register_blueprint(
-    ai_coach.ai_coach_bp,
-    url_prefix="/api"
-)
 
 
 
