@@ -110,10 +110,8 @@ limiter = Limiter(
 )
 
 
-# -----------------------------
-# Upload Folder
-# -----------------------------
-UPLOAD_FOLDER = "uploads"
+
+UPLOAD_FOLDER = "/tmp/uploads"
 
 os.makedirs(
     UPLOAD_FOLDER,
@@ -123,9 +121,6 @@ os.makedirs(
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 
-# -----------------------------
-# Register Routes
-# -----------------------------
 
 app.register_blueprint(
     auth_bp,
