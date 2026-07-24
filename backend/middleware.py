@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "edutrack_secret_key_2026")
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/student_performance_db")
 DB_NAME = os.getenv("DB_NAME", "student_performance_db")
 
 client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
