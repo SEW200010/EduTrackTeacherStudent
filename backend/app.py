@@ -74,6 +74,21 @@ ALLOWED_ORIGINS = [
 ]
 
 
+# -----------------------------
+# CORS Configuration
+# -----------------------------
+
+FRONTEND_URL = os.getenv("FRONTEND_URL")
+
+ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+if FRONTEND_URL:
+    ALLOWED_ORIGINS.append(FRONTEND_URL)
+
+
 CORS(
     app,
     resources={
