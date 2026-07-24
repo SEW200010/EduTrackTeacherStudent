@@ -5,6 +5,7 @@ python-dotenv
 flask-mail
 pymysql
 PyJWT
+pymongo
 pytz
 pandas
 openpyxl
