@@ -1,3 +1,4 @@
+import os
 import datetime
 import jwt
 from flask import Blueprint, request, jsonify, current_app
@@ -142,7 +143,9 @@ def forgot_password():
     try:
         serializer = get_serializer()
         token = serializer.dumps(email, salt='password-reset-salt')
-        reset_url = f"http://localhost:5173/reset-password?token={token}"
+        
+        FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+        reset_url = f"{FRONTEND_URL}/reset-password?token={token}",
 
         msg = Message(
             subject="EduTrack - System Password Reset Request",
