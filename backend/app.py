@@ -17,9 +17,6 @@ load_dotenv()
 app = Flask(__name__)
 
 
-# -----------------------------
-# Basic Route
-# -----------------------------
 @app.route("/")
 def home():
     return jsonify({
@@ -27,18 +24,11 @@ def home():
     })
 
 
-# -----------------------------
-# Secret Keys
-# -----------------------------
 app.config["SECRET_KEY"] = os.getenv(
     "JWT_SECRET_KEY",
     "default-secret-key"
 )
 
-
-# -----------------------------
-# Email Configuration
-# -----------------------------
 app.config["MAIL_SERVER"] = os.getenv(
     "MAIL_SERVER",
     "smtp.gmail.com"
@@ -65,19 +55,6 @@ mail = Mail(app)
 # -----------------------------
 # CORS Configuration
 # -----------------------------
-ALLOWED_ORIGINS = [
-    os.getenv(
-        "FRONTEND_URL",
-        "http://localhost:5173"
-    ),
-    "http://127.0.0.1:5173"
-]
-
-
-# -----------------------------
-# CORS Configuration
-# -----------------------------
-
 FRONTEND_URL = os.getenv("FRONTEND_URL")
 
 ALLOWED_ORIGINS = [
@@ -87,7 +64,6 @@ ALLOWED_ORIGINS = [
 
 if FRONTEND_URL:
     ALLOWED_ORIGINS.append(FRONTEND_URL)
-
 
 CORS(
     app,
@@ -125,7 +101,6 @@ limiter = Limiter(
 )
 
 
-
 UPLOAD_FOLDER = "/tmp/uploads"
 
 os.makedirs(
@@ -134,7 +109,6 @@ os.makedirs(
 )
 
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-
 
 
 app.register_blueprint(
@@ -158,22 +132,15 @@ app.register_blueprint(
 )
 
 
-
-
 # -----------------------------
 # Security Headers
 # -----------------------------
 @app.after_request
 def security_headers(response):
-
     response.headers["X-Content-Type-Options"] = "nosniff"
-
     response.headers["X-Frame-Options"] = "DENY"
-
     response.headers["X-XSS-Protection"] = "1; mode=block"
-
     return response
-
 
 
 # -----------------------------
@@ -181,17 +148,9 @@ def security_headers(response):
 # -----------------------------
 @app.before_request
 def handle_preflight():
-
     if request.method == "OPTIONS":
-
-        response = jsonify(
-            {
-                "status": "OK"
-            }
-        )
-
+        response = jsonify({"status": "OK"})
         return response, 200
-
 
 
 # IMPORTANT:
