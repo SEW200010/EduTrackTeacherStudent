@@ -6,13 +6,12 @@ from werkzeug.utils import secure_filename
 from bson import ObjectId
 import pandas as pd
 from middleware import token_required, marks_col, db
-from middleware import token_required, marks_col, db
 
 fees_col = db["fees"]
 announcements_col = db["announcements"]
 teacher_bp = Blueprint("teacher", __name__)
 
-MIN_REQUIRED_MARKS = 50 
+MIN_REQUIRED_MARKS = 50
 MIN_REQUIRED_ATTENDANCE = 80
 
 
@@ -21,13 +20,13 @@ MIN_REQUIRED_ATTENDANCE = 80
 def upload_marks_csv(current_user):
     if 'file' not in request.files:
         return jsonify({"message": "No file part in request"}), 400
-    
+
     file = request.files['file']
     if not file.filename.lower().endswith('.csv'):
         return jsonify({"message": "Invalid file. Please upload a CSV."}), 400
 
     filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], secure_filename(file.filename))
-    
+
     try:
         file.save(filepath)
         df = pd.read_csv(filepath).fillna('')
@@ -47,7 +46,6 @@ def upload_marks_csv(current_user):
             )
             student_id = str(raw_sid).strip().upper()
 
-            # Marks Processing Logic...
             raw_marks = row.get('marks', row.get('marks_obtained', 0))
             try:
                 marks_obtained = int(float(raw_marks)) if raw_marks != '' else 0
@@ -63,7 +61,6 @@ def upload_marks_csv(current_user):
 
             is_at_risk = True if (marks_obtained < MIN_REQUIRED_MARKS or att_val < MIN_REQUIRED_ATTENDANCE) else False
 
-            # 🌟🌟🌟 NEW: CSV එකෙන් Payment details අරගෙන MongoDB fees collection එකට Auto-Save/Update කිරීම 🌟🌟🌟
             raw_fee_status = row.get('fee_status', row.get('term_fee_status', 'Paid'))
             raw_due_date = row.get('due_date', 'N/A')
             raw_amount_due = row.get('amount_due', 'LKR 0.00')
@@ -81,10 +78,9 @@ def upload_marks_csv(current_user):
                         "due_date": due_date,
                         "amount_due": amount_due
                     }},
-                    upsert=True # 👈 තිබ්බොත් Update වෙනවා, නැත්නම් Insert වෙනවා
+                    upsert=True
                 )
 
-            # Record insert for marks
             marks_entries.append({
                 "student_id": student_id,
                 "student_email": str(row.get('student_email', '')).strip().lower(),
@@ -114,11 +110,56 @@ def upload_marks_csv(current_user):
             os.remove(filepath)
         return jsonify({"message": f"Upload failed: {str(e)}"}), 500
 
+
+# Add Single Marks Record (Manual Entry)
+@teacher_bp.route("/marks/add", methods=["POST"])
+@token_required(allowed_roles=["teacher", "admin"])
+def add_single_mark(current_user):
+    data = request.get_json()
+    if not data:
+        return jsonify({"message": "Invalid request payload"}), 400
+
+    teacher_identifier = current_user.get("user_id") or current_user.get("email")
+    sl_tz = pytz.timezone('Asia/Colombo')
+    today_str = datetime.datetime.now(sl_tz).strftime("%Y-%m-%d")
+
+    try:
+        marks_obtained = int(float(data.get("marks_obtained", 0)))
+        attendance_rate = str(data.get("attendance_rate", "0%"))
+        att_val = float(str(attendance_rate).replace('%', '').strip() or 0)
+
+        is_at_risk = True if (marks_obtained < MIN_REQUIRED_MARKS or att_val < MIN_REQUIRED_ATTENDANCE) else False
+
+        record = {
+            "student_id": str(data.get("student_id", "")).strip().upper(),
+            "student_email": str(data.get("student_email", "")).strip().lower(),
+            "student_name": str(data.get("student_name", "")).strip(),
+            "subject": str(data.get("subject", "")).strip(),
+            "marks_obtained": marks_obtained,
+            "max_marks": int(data.get("max_marks", 100)),
+            "exam_type": str(data.get("exam_type", "Mid-Term")),
+            "attendance_rate": attendance_rate,
+            "grade": str(data.get("grade", "N/A")),
+            "assignment_score": int(data.get("assignment_score", 0)),
+            "study_hours_per_week": int(data.get("study_hours_per_week", 0)),
+            "previous_gpa": float(data.get("previous_gpa", 0.0)),
+            "is_at_risk": is_at_risk,
+            "entered_by": teacher_identifier,
+            "date_uploaded": today_str
+        }
+
+        marks_col.insert_one(record)
+        return jsonify({"message": "Record added successfully!"}), 201
+
+    except Exception as e:
+        return jsonify({"message": f"Failed to add record: {str(e)}"}), 400
+
+
 @teacher_bp.route("/teacher/recent-marks", methods=["GET"])
 @token_required(allowed_roles=["teacher", "admin"])
 def get_teacher_recent_marks(current_user):
     teacher_identifier = current_user.get("user_id") or current_user.get("email")
-    
+
     records = list(marks_col.find({
         "$or": [
             {"entered_by": teacher_identifier},
@@ -161,7 +202,50 @@ def update_student_remark(record_id):
     return handle_put()
 
 
-# 4. Delete Mark
+# 4. Update Full Marks Record (Edit)
+@teacher_bp.route("/marks/<record_id>", methods=["PUT"])
+@token_required(allowed_roles=["teacher", "admin"])
+def update_mark_record(current_user, record_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({"message": "Invalid request payload"}), 400
+
+    try:
+        marks_obtained = int(float(data.get("marks_obtained", 0)))
+        attendance_rate = str(data.get("attendance_rate", "0%"))
+        att_val = float(str(attendance_rate).replace('%', '').strip() or 0)
+        is_at_risk = True if (marks_obtained < MIN_REQUIRED_MARKS or att_val < MIN_REQUIRED_ATTENDANCE) else False
+
+        update_data = {
+            "student_id": str(data.get("student_id", "")).strip().upper(),
+            "student_email": str(data.get("student_email", "")).strip().lower(),
+            "student_name": str(data.get("student_name", "")).strip(),
+            "subject": str(data.get("subject", "")).strip(),
+            "marks_obtained": marks_obtained,
+            "max_marks": int(data.get("max_marks", 100)),
+            "exam_type": str(data.get("exam_type", "Mid-Term")),
+            "attendance_rate": attendance_rate,
+            "grade": str(data.get("grade", "N/A")),
+            "assignment_score": int(data.get("assignment_score", 0)),
+            "study_hours_per_week": int(data.get("study_hours_per_week", 0)),
+            "previous_gpa": float(data.get("previous_gpa", 0.0)),
+            "is_at_risk": is_at_risk
+        }
+
+        res = marks_col.update_one(
+            {"_id": ObjectId(record_id)},
+            {"$set": update_data}
+        )
+
+        if res.matched_count > 0:
+            return jsonify({"message": "Record updated successfully!"}), 200
+        return jsonify({"message": "Record not found"}), 404
+
+    except Exception as e:
+        return jsonify({"message": f"Update failed: {str(e)}"}), 400
+
+
+# 5. Delete Mark
 @teacher_bp.route("/marks/<record_id>", methods=["DELETE"])
 @token_required(allowed_roles=["teacher", "admin"])
 def delete_student_mark(current_user, record_id):
@@ -171,7 +255,7 @@ def delete_student_mark(current_user, record_id):
     return jsonify({"message": "Record not found"}), 404
 
 
-# 5. Create Announcement (Fix: Duplicate Removed & Sri Lanka Time Zone Applied)
+# 6. Create Announcement
 @teacher_bp.route("/announcements", methods=["POST"])
 @token_required(allowed_roles=["teacher", "admin"])
 def create_announcement(current_user):
@@ -187,7 +271,6 @@ def create_announcement(current_user):
 
     teacher_identifier = current_user.get("user_id") or current_user.get("email")
 
-    # 🌟 Sri Lanka Time Zone Fix (UTC+5:30)
     sl_tz = pytz.timezone('Asia/Colombo')
     sl_now = datetime.datetime.now(sl_tz).strftime("%Y-%m-%d %H:%M")
 
@@ -206,7 +289,7 @@ def create_announcement(current_user):
     return jsonify({"message": "Announcement published successfully!"}), 201
 
 
-# 6. Edit / Update Announcement
+# 7. Edit / Update Announcement
 @teacher_bp.route("/announcements/<id>", methods=["PUT"])
 @token_required(allowed_roles=["teacher", "admin"])
 def update_announcement(current_user, id):
@@ -243,7 +326,7 @@ def update_announcement(current_user, id):
         return jsonify({"message": f"Update failed: {str(e)}"}), 500
 
 
-# 7. Get All Announcements
+# 8. Get All Announcements
 @teacher_bp.route("/announcements", methods=["GET"])
 @token_required()
 def get_announcements(current_user):
@@ -253,7 +336,7 @@ def get_announcements(current_user):
     return jsonify({"announcements": records}), 200
 
 
-# 8. Delete Announcement
+# 9. Delete Announcement
 @teacher_bp.route("/announcements/<id>", methods=["DELETE"])
 @token_required(allowed_roles=["teacher", "admin"])
 def delete_announcement(current_user, id):
