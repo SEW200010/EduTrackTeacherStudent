@@ -1,4 +1,5 @@
-# EduTrackTeacherStudent  -  https://edu-track-teacher-student-ddkr.vercel.app
+# EduTrackTeacherStudent  
+https://edu-track-teacher-student-ddkr.vercel.app
 
 
 A simple education tracking project for teachers and students.
