@@ -1,157 +1,54 @@
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify
 from flask_cors import CORS
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-from dotenv import load_dotenv
 from flask_mail import Mail
-
-# Import Blueprints
-from routes.auth_routes import auth_bp
-from routes.teacher_routes import teacher_bp
-from routes.student_routes import student_bp
-from routes.parent_routes import parent_bp
+from dotenv import load_dotenv
 
 load_dotenv()
 
 app = Flask(__name__)
 
+# Configure upload folder
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-@app.route("/")
-def home():
-    return jsonify({
-        "message": "API Running Successfully"
-    })
-
-
-app.config["SECRET_KEY"] = os.getenv(
-    "JWT_SECRET_KEY",
-    "default-secret-key"
-)
-
-app.config["MAIL_SERVER"] = os.getenv(
-    "MAIL_SERVER",
-    "smtp.gmail.com"
-)
-
-app.config["MAIL_PORT"] = int(
-    os.getenv("MAIL_PORT", 587)
-)
-
-app.config["MAIL_USE_TLS"] = True
-
-app.config["MAIL_USERNAME"] = os.getenv(
-    "MAIL_USERNAME"
-)
-
-app.config["MAIL_PASSWORD"] = os.getenv(
-    "MAIL_PASSWORD"
-)
-
+# Configure Flask-Mail
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'True').lower() in ['true', '1', 't']
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_USERNAME')
 
 mail = Mail(app)
 
-
-# -----------------------------
-# CORS Configuration
-# -----------------------------
-FRONTEND_URL = os.getenv("FRONTEND_URL")
-
-ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
-
-if FRONTEND_URL:
-    ALLOWED_ORIGINS.append(FRONTEND_URL)
-
+# Enable CORS for all /api/* endpoints
 CORS(
     app,
     resources={
         r"/api/*": {
-            "origins": ALLOWED_ORIGINS
+            "origins": ["*"]
         }
     },
     supports_credentials=True,
-    allow_headers=[
-        "Content-Type",
-        "Authorization"
-    ],
-    methods=[
-        "GET",
-        "POST",
-        "PUT",
-        "DELETE",
-        "OPTIONS"
-    ]
 )
 
+# Register Blueprints
+from routes.auth_routes import auth_bp
+from routes.teacher_routes import teacher_bp
+from routes.student_routes import student_bp
+from routes.parent_routes import parent_bp
 
-# -----------------------------
-# Rate Limiter
-# -----------------------------
-limiter = Limiter(
-    key_func=get_remote_address,
-    app=app,
-    default_limits=[
-        "200 per day",
-        "50 per hour"
-    ],
-    storage_uri="memory://"
-)
+app.register_blueprint(auth_bp, url_prefix="/api")
+app.register_blueprint(teacher_bp, url_prefix="/api")
+app.register_blueprint(student_bp, url_prefix="/api")
+app.register_blueprint(parent_bp, url_prefix="/api")
 
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({"message": "EduTrack API Running Successfully"})
 
-UPLOAD_FOLDER = "/tmp/uploads"
-
-os.makedirs(
-    UPLOAD_FOLDER,
-    exist_ok=True
-)
-
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-
-
-app.register_blueprint(
-    auth_bp,
-    url_prefix="/api"
-)
-
-app.register_blueprint(
-    teacher_bp,
-    url_prefix="/api"
-)
-
-app.register_blueprint(
-    student_bp,
-    url_prefix="/api"
-)
-
-app.register_blueprint(
-    parent_bp,
-    url_prefix="/api"
-)
-
-
-# -----------------------------
-# Security Headers
-# -----------------------------
-@app.after_request
-def security_headers(response):
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    return response
-
-
-# -----------------------------
-# OPTIONS Request Handler
-# -----------------------------
-@app.before_request
-def handle_preflight():
-    if request.method == "OPTIONS":
-        response = jsonify({"status": "OK"})
-        return response, 200
-
-
-# IMPORTANT:
-# No app.run() for Vercel
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)

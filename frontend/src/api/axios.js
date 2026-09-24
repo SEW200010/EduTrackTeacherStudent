@@ -1,8 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-    baseURL:
-    "https://edu-track-teacher-student-62v6-pewtxnghi.vercel.app/api"
+    baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api"
 });
 
 export default API;

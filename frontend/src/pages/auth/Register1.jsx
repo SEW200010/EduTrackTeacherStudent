@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { AlertCircle, CheckCircle } from 'lucide-react';
 import API from '../../api';
+import StandardHeader from '../../components/StandardHeader';
+import Footer1 from '../../components/Footer1';
+import { BrandMark } from '../../components/Brand';
+
+const ROLES = ['student', 'parent', 'teacher'];
 
 export default function Register1() {
   const navigate = useNavigate();
@@ -43,61 +49,91 @@ export default function Register1() {
     }
   };
 
+  const roleLabel = role.charAt(0).toUpperCase() + role.slice(1);
+
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F1F5F9', padding: '20px' }}>
-      <div style={{ background: '#FFF', padding: '32px', borderRadius: '20px', width: '100%', maxWidth: '420px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)' }}>
-        <h2 style={{ textAlign: 'center', color: '#0F172A', fontWeight: '800', marginBottom: '6px' }}>Create Account</h2>
-        <p style={{ textAlign: 'center', color: '#64748B', fontSize: '14px', marginBottom: '20px' }}>Join the EduTrack System</p>
+    <div className="auth-page">
+      <StandardHeader showSignIn={false} />
 
-        {error && <div style={{ background: '#FEE2E2', color: '#991B1B', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', marginBottom: '14px' }}>{error}</div>}
-        {success && <div style={{ background: '#D1FAE5', color: '#065F46', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', marginBottom: '14px' }}>{success}</div>}
-
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '14px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Register As</label>
-            <select value={role} onChange={(e) => setRole(e.target.value)} style={{ width: '445px', padding: '12px', borderRadius: '10px', border: '1.5px solid #CBD5E1', outline: 'none' }}>
-              <option value="student">Student</option>
-              <option value="parent">Parent</option>
-              <option value="teacher">Teacher</option>
-            </select>
+      <div className="auth-center">
+        <div className="card auth-card" style={{ maxWidth: 460 }}>
+          <div className="auth-head">
+            <BrandMark size={22} />
+            <h1 className="auth-title">Create your account</h1>
+            <p className="auth-subtitle">Join EduTrack to access your dashboard.</p>
           </div>
 
-          <div style={{ marginBottom: '14px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>{role.toUpperCase()} ID</label>
-            <input type="text" value={userId} onChange={(e) => setUserId(e.target.value.toUpperCase())} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1.5px solid #CBD5E1', outline: 'none' }} required />
-          </div>
-
-          {role === 'parent' && (
-            <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#1E3A8A', marginBottom: '6px' }}>Child's Student ID *</label>
-              <input type="text" value={studentId} onChange={(e) => setStudentId(e.target.value.toUpperCase())} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '2px solid #2563EB', outline: 'none', background: '#EFF6FF' }} required />
+          {error && (
+            <div className="alert alert-danger" style={{ marginBottom: 16 }}>
+              <AlertCircle size={16} /> <span>{error}</span>
+            </div>
+          )}
+          {success && (
+            <div className="alert alert-success" style={{ marginBottom: 16 }}>
+              <CheckCircle size={16} /> <span>{success}</span>
             </div>
           )}
 
-          <div style={{ marginBottom: '14px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Full Name</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1.5px solid #CBD5E1', outline: 'none' }} required />
-          </div>
+          <form onSubmit={handleSubmit} className="form-stack">
+            <div className="field">
+              <span className="label">Register as</span>
+              <div className="segmented" role="tablist">
+                {ROLES.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    role="tab"
+                    aria-selected={role === r}
+                    className={role === r ? 'active' : ''}
+                    onClick={() => setRole(r)}
+                  >
+                    {r.charAt(0).toUpperCase() + r.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-          <div style={{ marginBottom: '14px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Email Address</label>
-            <input type="email"  value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1.5px solid #CBD5E1', outline: 'none' }} required />
-          </div>
+            <div className="field">
+              <label className="label" htmlFor="name">Full name</label>
+              <input id="name" className="input" type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+            </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1.5px solid #CBD5E1', outline: 'none' }} required />
-          </div>
+            <div className="field">
+              <label className="label" htmlFor="email">Email address</label>
+              <input id="email" className="input" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            </div>
 
-          <button type="submit" disabled={loading} style={{ width: '445px', padding: '14px', background: '#2563EB', color: '#FFF', border: 'none', borderRadius: '12px', fontWeight: '800', fontSize: '15px', cursor: 'pointer' }}>
-            {loading ? "Registering..." : "Sign Up"}
-          </button>
-        </form>
+            <div className="form-grid">
+              <div className="field">
+                <label className="label" htmlFor="userId">{roleLabel} ID</label>
+                <input id="userId" className="input" type="text" value={userId} onChange={(e) => setUserId(e.target.value.toUpperCase())} required />
+              </div>
 
-        <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '14px', color: '#64748B' }}>
-          Already registered? <Link to="/login" style={{ color: '#2563EB', fontWeight: '700' }}>Sign In</Link>
-        </p>
+              {role === 'parent' && (
+                <div className="field">
+                  <label className="label" htmlFor="studentId">Child's student ID</label>
+                  <input id="studentId" className="input" type="text" placeholder="e.g. S1001" value={studentId} onChange={(e) => setStudentId(e.target.value.toUpperCase())} required />
+                </div>
+              )}
+            </div>
+
+            <div className="field">
+              <label className="label" htmlFor="password">Password</label>
+              <input id="password" className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            </div>
+
+            <button type="submit" disabled={loading} className="btn btn-primary btn-lg btn-block" style={{ marginTop: 8 }}>
+              {loading ? 'Creating account…' : 'Create account'}
+            </button>
+          </form>
+
+          <p className="auth-foot">
+            Already registered? <Link to="/login">Sign in</Link>
+          </p>
+        </div>
       </div>
+
+      <Footer1 />
     </div>
   );
 }

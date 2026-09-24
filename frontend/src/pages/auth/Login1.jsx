@@ -1,12 +1,22 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import API from '../../api';
+import StandardHeader from '../../components/StandardHeader';
+import Footer1 from '../../components/Footer1';
+import { BrandMark } from '../../components/Brand';
+
+const ROLES = ['student', 'parent', 'teacher'];
 
 export default function Login1() {
   const navigate = useNavigate();
-  const [role, setRole] = useState('student');
+  const [searchParams] = useSearchParams();
+  const initialRole = ROLES.includes(searchParams.get('role')) ? searchParams.get('role') : 'student';
+
+  const [role, setRole] = useState(initialRole);
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [studentId, setStudentId] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -45,55 +55,82 @@ export default function Login1() {
     }
   };
 
+  const roleLabel = role.charAt(0).toUpperCase() + role.slice(1);
+
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F1F5F9', padding: '20px' }}>
-      <div style={{ background: '#FFF', padding: '32px', borderRadius: '20px', width: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)' }}>
-        <h2 style={{ textAlign: 'center', color: '#0F172A', fontWeight: '800', marginBottom: '6px' }}>Sign In</h2>
-        <p style={{ textAlign: 'center', color: '#64748B', fontSize: '14px', marginBottom: '20px' }}>EduTrack Management System</p>
+    <div className="auth-page">
+      <StandardHeader showSignIn={false} />
 
-        {error && <div style={{ background: '#FEE2E2', color: '#991B1B', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', marginBottom: '14px' }}>{error}</div>}
-
-        <form onSubmit={handleLogin}>
-          <div style={{ marginBottom: '14px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>I am a</label>
-            <select value={role} onChange={(e) => setRole(e.target.value)} style={{ width: '395px',
-           padding: '12px', borderRadius: '10px', border: '1.5px solid #CBD5E1', outline: 'none' }}>
-              <option value="student">Student</option>
-              <option value="parent">Parent</option>
-              <option value="teacher">Teacher</option>
-            </select>
+      <div className="auth-center">
+        <div className="card auth-card">
+          <div className="auth-head">
+            <BrandMark size={22} />
+            <h1 className="auth-title">Sign in to EduTrack</h1>
+            <p className="auth-subtitle">Welcome back. Please enter your details.</p>
           </div>
 
-          <div style={{ marginBottom: '14px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>{role.toUpperCase()} ID</label>
-            <input type="text" placeholder="Enter ID" value={userId} onChange={(e) => setUserId(e.target.value.toUpperCase())} style={{ width: '370px', padding: '12px', borderRadius: '10px', border: '1.5px solid #CBD5E1', outline: 'none' }} required />
-          </div>
-
-          {role === 'parent' && (
-            <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#1E3A8A', marginBottom: '6px' }}>Child's Student ID *</label>
-              <input type="text" placeholder="e.g. S1001" value={studentId} onChange={(e) => setStudentId(e.target.value.toUpperCase())} style={{ width: '370px', padding: '12px', borderRadius: '10px', border: '2px solid #2563EB', outline: 'none', background: '#EFF6FF' }} required />
+          {error && (
+            <div className="alert alert-danger" style={{ marginBottom: 16 }}>
+              <AlertCircle size={16} /> <span>{error}</span>
             </div>
           )}
 
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Password</label>
-            <input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: '370px', padding: '12px', borderRadius: '10px', border: '1.5px solid #CBD5E1', outline: 'none' }} required />
-          </div>
+          <form onSubmit={handleLogin} className="form-stack">
+            <div className="field">
+              <span className="label">I am a</span>
+              <div className="segmented" role="tablist">
+                {ROLES.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    role="tab"
+                    aria-selected={role === r}
+                    className={role === r ? 'active' : ''}
+                    onClick={() => setRole(r)}
+                  >
+                    {r.charAt(0).toUpperCase() + r.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-          <div style={{ textAlign: 'right', marginBottom: '20px' }}>
-            <Link to="/forgot-password" style={{ fontSize: '13px', color: '#2563EB', fontWeight: '600' }}>Forgot password?</Link>
-          </div>
+            <div className="field">
+              <label className="label" htmlFor="userId">{roleLabel} ID</label>
+              <input id="userId" className="input" type="text" placeholder={`Enter your ${role} ID`} value={userId} onChange={(e) => setUserId(e.target.value.toUpperCase())} required />
+            </div>
 
-          <button type="submit" disabled={loading} style={{ width: '400px', padding: '14px', background: '#2563EB', color: '#FFF', border: 'none', borderRadius: '12px', fontWeight: '800', fontSize: '15px', cursor: 'pointer' }}>
-            {loading ? "Signing In..." : "Sign In"}
-          </button>
-        </form>
+            {role === 'parent' && (
+              <div className="field">
+                <label className="label" htmlFor="studentId">Child's student ID</label>
+                <input id="studentId" className="input" type="text" placeholder="e.g. S1001" value={studentId} onChange={(e) => setStudentId(e.target.value.toUpperCase())} required />
+              </div>
+            )}
 
-        <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '14px', color: '#64748B' }}>
-          Don't have an account? <Link to="/register" style={{ color: '#2563EB', fontWeight: '700' }}>Register</Link>
-        </p>
+            <div className="field">
+              <div className="row-between">
+                <label className="label" htmlFor="password">Password</label>
+                <Link to="/forgot-password" className="text-sm">Forgot password?</Link>
+              </div>
+              <div className="input-group">
+                <input id="password" type={showPassword ? 'text' : 'password'} placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" disabled={loading} className="btn btn-primary btn-lg btn-block" style={{ marginTop: 8 }}>
+              {loading ? 'Signing in…' : 'Sign in'}
+            </button>
+          </form>
+
+          <p className="auth-foot">
+            Don't have an account? <Link to="/register">Create one</Link>
+          </p>
+        </div>
       </div>
+
+      <Footer1 />
     </div>
   );
 }
