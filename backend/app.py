@@ -11,11 +11,14 @@ app = Flask(__name__)
 
 # Configure upload folder. Serverless hosts (Vercel) only allow writes to /tmp,
 # which is fine because uploaded CSVs are deleted right after processing.
-if os.getenv("VERCEL"):
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+try:
+    if os.getenv("VERCEL"):
+        raise OSError("read-only filesystem on Vercel")
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+except OSError:
     UPLOAD_FOLDER = os.path.join(tempfile.gettempdir(), 'uploads')
-else:
-    UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Configure Flask-Mail
