@@ -1,4 +1,5 @@
 import os
+import tempfile
 from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_mail import Mail
@@ -8,8 +9,12 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Configure upload folder
-UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+# Configure upload folder. Serverless hosts (Vercel) only allow writes to /tmp,
+# which is fine because uploaded CSVs are deleted right after processing.
+if os.getenv("VERCEL"):
+    UPLOAD_FOLDER = os.path.join(tempfile.gettempdir(), 'uploads')
+else:
+    UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
